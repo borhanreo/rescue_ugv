@@ -118,3 +118,33 @@ div#chatStatus {
 input#msgInput {
     width: 420px;
 }
+
+div#robot {
+    margin: 1em;
+    max-width: 1320px;
+}
+
+div#robotControls {
+    background: white;
+    padding: 0.75em;
+    border-radius: 3px;
+}
+
+div#robotStatus {
+    margin: 0.25em 0 0.5em;
+}
+
+.robot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5em;
+    align-items: center;
+    max-width: 520px;
+}
+
+.robot-row {
+    display: flex;
+    gap: 0.5em;
+    flex-wrap: wrap;
+    margin-top: 0.75em;
+}

@@ -1,4 +1,10 @@
-mdc.ripple.MDCRipple.attachTo(document.querySelector('.mdc-button'));
+document.querySelectorAll('.mdc-button').forEach((btn) => {
+  try {
+    mdc.ripple.MDCRipple.attachTo(btn);
+  } catch (err) {
+    // Ignore if MDC isn't available yet.
+  }
+});
 
 // DEfault configuration - Change these if you have a different STUN or TURN server.
 const configuration = {
@@ -26,6 +32,28 @@ const chatEls = {
   messages: null,
   input: null,
   sendBtn: null,
+};
+
+const robotEls = {
+  status: null,
+  buttons: [],
+};
+
+const DEFAULT_CMD_V = '100';
+
+const ROBOT_CMD_MAP = {
+  forward: { t: 1, v: DEFAULT_CMD_V },
+  back: { t: 2, v: DEFAULT_CMD_V },
+  left: { t: 3, v: DEFAULT_CMD_V },
+  right: { t: 4, v: DEFAULT_CMD_V },
+
+  // Defaults for the additional requested buttons.
+  // If your robot uses different codes/values, change these.
+  pos_hold: { t: 5, v: DEFAULT_CMD_V },
+  alt_hold: { t: 6, v: DEFAULT_CMD_V },
+  extra_1: { t: 7, v: DEFAULT_CMD_V },
+  extra_2: { t: 8, v: DEFAULT_CMD_V },
+  extra_3: { t: 9, v: DEFAULT_CMD_V },
 };
 
 function initChatUi() {
@@ -75,17 +103,76 @@ function setupDataChannel(channel) {
   dataChannel.onopen = () => {
     setChatStatus('Connected');
     setChatEnabled(true);
+    setRobotStatus('Connected');
+    setRobotControlsEnabled(true);
   };
   dataChannel.onclose = () => {
     setChatStatus('Closed');
     setChatEnabled(false);
+    setRobotStatus('Closed');
+    setRobotControlsEnabled(false);
   };
   dataChannel.onerror = (err) => {
     console.error('DataChannel error:', err);
   };
   dataChannel.onmessage = (event) => {
-    appendChatMessage('Peer', String(event.data ?? ''));
+    const payloadText = String(event.data ?? '');
+    appendChatMessage('Peer', payloadText);
+    try {
+      const parsed = JSON.parse(payloadText);
+      if (parsed && typeof parsed === 'object' && 't' in parsed && 'v' in parsed) {
+        console.log('Received robot command:', parsed);
+      }
+    } catch {
+      // Ignore non-JSON messages
+    }
   };
+}
+
+function initRobotUi() {
+  robotEls.status = document.querySelector('#robotStatus');
+  robotEls.buttons = Array.from(document.querySelectorAll('[data-cmd]'));
+
+  if (!robotEls.status || robotEls.buttons.length === 0) {
+    console.warn('Robot UI elements not found; robot controls disabled.');
+    return;
+  }
+
+  setRobotControlsEnabled(false);
+  setRobotStatus('Not connected');
+
+  robotEls.buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const cmdKey = btn.getAttribute('data-cmd');
+      sendRobotCommandByKey(cmdKey);
+    });
+  });
+}
+
+function setRobotStatus(text) {
+  if (robotEls.status) robotEls.status.textContent = text;
+}
+
+function setRobotControlsEnabled(enabled) {
+  robotEls.buttons.forEach((btn) => {
+    btn.disabled = !enabled;
+  });
+}
+
+function sendRobotCommandByKey(cmdKey) {
+  if (!cmdKey) return;
+  const cmd = ROBOT_CMD_MAP[cmdKey];
+  if (!cmd) {
+    console.warn('Unknown robot command key:', cmdKey);
+    return;
+  }
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    setRobotStatus('Not connected');
+    return;
+  }
+  const jsonText = JSON.stringify(cmd);
+  dataChannel.send(jsonText);
+  console.log('Sent robot command:', jsonText);
 }
 
 function sendChatMessage() {
@@ -110,6 +197,7 @@ function init() {
   roomDialog = new mdc.dialog.MDCDialog(document.querySelector('#room-dialog'));
 
   initChatUi();
+  initRobotUi();
 }
 
 async function createRoom() {
@@ -330,6 +418,9 @@ async function hangUp(e) {
 
   setChatEnabled(false);
   setChatStatus('Not connected');
+
+  setRobotControlsEnabled(false);
+  setRobotStatus('Not connected');
 
   document.querySelector('#localVideo').srcObject = null;
   document.querySelector('#remoteVideo').srcObject = null;

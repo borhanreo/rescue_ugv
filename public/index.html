@@ -59,6 +59,51 @@
         </button>
     </div>
 </div>
+
+<div id="robot">
+    <h2>Robot controls</h2>
+    <div id="robotStatus">Not connected</div>
+    <div id="robotControls" aria-label="Robot controls">
+        <div class="robot-grid">
+            <div></div>
+            <button class="mdc-button mdc-button--raised" id="btnForward" data-cmd="forward" disabled>
+                <span class="mdc-button__label">Forward</span>
+            </button>
+            <div></div>
+
+            <button class="mdc-button mdc-button--raised" id="btnLeft" data-cmd="left" disabled>
+                <span class="mdc-button__label">Left</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnHold" data-cmd="pos_hold" disabled>
+                <span class="mdc-button__label">Position Hold</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnRight" data-cmd="right" disabled>
+                <span class="mdc-button__label">Right</span>
+            </button>
+
+            <div></div>
+            <button class="mdc-button mdc-button--raised" id="btnBack" data-cmd="back" disabled>
+                <span class="mdc-button__label">Back</span>
+            </button>
+            <div></div>
+        </div>
+
+        <div class="robot-row">
+            <button class="mdc-button mdc-button--raised" id="btnAltHold" data-cmd="alt_hold" disabled>
+                <span class="mdc-button__label">Alt Hold</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnExtra1" data-cmd="extra_1" disabled>
+                <span class="mdc-button__label">Extra 1</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnExtra2" data-cmd="extra_2" disabled>
+                <span class="mdc-button__label">Extra 2</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnExtra3" data-cmd="extra_3" disabled>
+                <span class="mdc-button__label">Extra 3</span>
+            </button>
+        </div>
+    </div>
+</div>
 <div class="mdc-dialog"
      id="room-dialog"
      role="alertdialog"
