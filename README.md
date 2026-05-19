@@ -15,7 +15,24 @@ https://webrtc.org/getting-started/firebase-rtc-codelab
 ### run in cloud
 ```firebase serve --host 0.0.0.0 -p 5500```
 
-### for https install with local tunnel
-```npm install -g localtunnel```
-### Run Local tunnel
-```lt --port 5500 ```
+## Required: Enable Cloud Firestore
+This app uses **Cloud Firestore** for signalling (`rooms`, `callerCandidates`, `calleeCandidates`).
+
+If you see errors like:
+- `FirebaseError: The database (default) does not exist ...`
+- `Could not reach Cloud Firestore backend`
+
+Create/enable Firestore for your Firebase project:
+1. Firebase Console → **Build** → **Firestore Database**
+2. Click **Create database** (choose **Test mode** for quick demo)
+3. Reload the page and try **Create room** / **Join room** again
+
+This repo also includes a demo rule set in `firestore.rules`. To deploy rules:
+```bash
+firebase deploy --only firestore:rules
+```
+
+### for https install proxy server
+```npm install http-proxy```
+### Run proxy server
+```sudo node proxy-server.js ```

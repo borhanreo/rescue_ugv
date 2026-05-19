@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // WebRTC signalling rooms + ICE candidates.
+    // NOTE: This is intentionally open to keep the codelab/demo working.
+    // For production, restrict access (e.g., require auth, validate fields).
+    match /rooms/{roomId} {
+      allow read, write: if true;
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+  }
+}

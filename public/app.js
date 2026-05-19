@@ -126,10 +126,11 @@ async function createRoom() {
 
   registerPeerConnectionListeners();
 
-  // Add code for creating a room here
-  const roomRef = await db.collection('rooms').doc();
-  roomId = roomRef.id;
-  document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
+  try {
+    // Add code for creating a room here
+    const roomRef = await db.collection('rooms').doc();
+    roomId = roomRef.id;
+    document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
   
   localStream.getTracks().forEach(track => {
     peerConnection.addTrack(track, localStream);
@@ -154,7 +155,7 @@ async function createRoom() {
       sdp: offer.sdp,
     },
   };
-  await roomRef.set(roomWithOffer);
+    await roomRef.set(roomWithOffer);
 
   peerConnection.addEventListener('track', event => {
     console.log('Got remote track:', event.streams[0]);
@@ -165,25 +166,34 @@ async function createRoom() {
   });
 
   // Listening for remote session description below
-  roomRef.onSnapshot(async snapshot => {
-    const data = snapshot.data();
-    if (!peerConnection.currentRemoteDescription && data && data.answer) {
-      console.log('Got remote description: ', data.answer);
-      const rtcSessionDescription = new RTCSessionDescription(data.answer);
-      await peerConnection.setRemoteDescription(rtcSessionDescription);
-    }
-  });
-
-  // Listen for remote ICE candidates below
-  roomRef.collection('calleeCandidates').onSnapshot(snapshot => {
-    snapshot.docChanges().forEach(async change => {
-      if (change.type === 'added') {
-        const data = change.doc.data();
-        console.log('Got new remote ICE candidate: ', data);
-        await peerConnection.addIceCandidate(new RTCIceCandidate(data));
+    roomRef.onSnapshot(async snapshot => {
+      const data = snapshot.data();
+      if (!peerConnection.currentRemoteDescription && data && data.answer) {
+        console.log('Got remote description: ', data.answer);
+        const rtcSessionDescription = new RTCSessionDescription(data.answer);
+        await peerConnection.setRemoteDescription(rtcSessionDescription);
       }
     });
-  });
+
+  // Listen for remote ICE candidates below
+    roomRef.collection('calleeCandidates').onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(async change => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          console.log('Got new remote ICE candidate: ', data);
+          await peerConnection.addIceCandidate(new RTCIceCandidate(data));
+        }
+      });
+    });
+  } catch (err) {
+    console.error('Failed to create room (Firestore)', err);
+    setChatStatus('Not connected');
+    setChatEnabled(false);
+    document.querySelector('#currentRoom').innerText = 'Failed to create room. Check Firestore is enabled and you are online.';
+    document.querySelector('#createBtn').disabled = false;
+    document.querySelector('#joinBtn').disabled = false;
+    throw err;
+  }
 }
 
 function joinRoom() {
@@ -204,7 +214,16 @@ function joinRoom() {
 async function joinRoomById(roomId) {
   const db = firebase.firestore();
   const roomRef = db.collection('rooms').doc(`${roomId}`);
-  const roomSnapshot = await roomRef.get();
+  let roomSnapshot;
+  try {
+    roomSnapshot = await roomRef.get();
+  } catch (err) {
+    console.error('Failed to join room (Firestore)', err);
+    document.querySelector('#currentRoom').innerText = 'Failed to join room. Check Firestore is enabled and you are online.';
+    document.querySelector('#createBtn').disabled = false;
+    document.querySelector('#joinBtn').disabled = false;
+    throw err;
+  }
   console.log('Got room:', roomSnapshot.exists);
 
   if (roomSnapshot.exists) {
@@ -322,17 +341,21 @@ async function hangUp(e) {
 
   // Delete room on hangup
   if (roomId) {
-    const db = firebase.firestore();
-    const roomRef = db.collection('rooms').doc(roomId);
-    const calleeCandidates = await roomRef.collection('calleeCandidates').get();
-    calleeCandidates.forEach(async candidate => {
-      await candidate.delete();
-    });
-    const callerCandidates = await roomRef.collection('callerCandidates').get();
-    callerCandidates.forEach(async candidate => {
-      await candidate.delete();
-    });
-    await roomRef.delete();
+    try {
+      const db = firebase.firestore();
+      const roomRef = db.collection('rooms').doc(roomId);
+      const calleeCandidates = await roomRef.collection('calleeCandidates').get();
+      calleeCandidates.forEach(async candidate => {
+        await candidate.delete();
+      });
+      const callerCandidates = await roomRef.collection('callerCandidates').get();
+      callerCandidates.forEach(async candidate => {
+        await candidate.delete();
+      });
+      await roomRef.delete();
+    } catch (err) {
+      console.warn('Failed to delete room (Firestore). This can happen offline:', err);
+    }
   }
 
   document.location.reload(true);
