@@ -8,7 +8,9 @@ The solution to this codelab can be seen in the _solution_ branch.
 See http://webrtc.org for details.
 
 ### following this instruction
-```https://webrtc.org/getting-started/firebase-rtc-codelab
+https://webrtc.org/getting-started/firebase-rtc-codelab
 
 ### Run command 
-firebase serve --only hosting
+``` firebase serve --only hosting```
+### run in cloud
+```firebase serve --host 0.0.0.0 -p 5500```
