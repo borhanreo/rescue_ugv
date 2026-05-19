@@ -14,3 +14,8 @@ https://webrtc.org/getting-started/firebase-rtc-codelab
 ``` firebase serve --only hosting```
 ### run in cloud
 ```firebase serve --host 0.0.0.0 -p 5500```
+
+### for https install with local tunnel
+```npm install -g localtunnel```
+### Run Local tunnel
+```lt --port 5500 ```
