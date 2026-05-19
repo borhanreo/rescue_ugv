@@ -269,6 +269,8 @@ async function joinRoomById(roomId) {
 }
 
 async function openUserMedia(e) {
+  console.log(navigator.mediaDevices);
+  console.log("console here 01");
   const stream = await navigator.mediaDevices.getUserMedia(
       {video: true, audio: true});
   document.querySelector('#localVideo').srcObject = stream;
@@ -281,6 +283,7 @@ async function openUserMedia(e) {
   document.querySelector('#joinBtn').disabled = false;
   document.querySelector('#createBtn').disabled = false;
   document.querySelector('#hangupBtn').disabled = false;
+  console.log("Console here 02");
 }
 
 async function hangUp(e) {
