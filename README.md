@@ -36,4 +36,4 @@ firebase deploy --only firestore:rules
 ### for https install proxy server
 ```npm install http-proxy```
 ### Run proxy server
-```sudo node proxy-server.js ```
+```sudo node proxy_server.js ```
