@@ -56,6 +56,32 @@ const ROBOT_CMD_MAP = {
   extra_3: { t: 9, v: DEFAULT_CMD_V },
 };
 
+function getRoomActionFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const joinId = (params.get('room_join') || '').trim();
+    const createId = (params.get('room_create') || '').trim();
+
+    if (joinId) return { action: 'join', roomId: joinId };
+    if (createId) return { action: 'create', roomId: createId };
+    return { action: null, roomId: null };
+  } catch (err) {
+    console.warn('Failed to parse URL params:', err);
+    return { action: null, roomId: null };
+  }
+}
+
+function isValidRoomId(id) {
+  if (typeof id !== 'string') return false;
+  const trimmed = id.trim();
+  if (!trimmed) return false;
+  // Firestore document IDs must not contain '/' (path separator).
+  if (trimmed.includes('/')) return false;
+  // Keep it reasonably sized for URLs and UI.
+  if (trimmed.length > 200) return false;
+  return true;
+}
+
 function initChatUi() {
   chatEls.status = document.querySelector('#chatStatus');
   chatEls.messages = document.querySelector('#messages');
@@ -198,9 +224,52 @@ function init() {
 
   initChatUi();
   initRobotUi();
+
+  // Optional auto-create / auto-join via URL params.
+  // Examples:
+  //   ?room_create=test_test
+  //   ?room_join=test_test
+  autoStartFromUrl().catch(err => {
+    console.warn('Auto start from URL failed:', err);
+  });
+}
+
+async function autoStartFromUrl() {
+  const { action, roomId: requestedRoomId } = getRoomActionFromUrl();
+  if (!action) return;
+
+  if (!isValidRoomId(requestedRoomId)) {
+    console.warn('Ignoring invalid room id from URL:', requestedRoomId);
+    return;
+  }
+
+  // The existing flow requires camera to be opened first.
+  // This will prompt for permissions if not already granted.
+  try {
+    await openUserMedia();
+  } catch (err) {
+    console.error('Failed to open user media for auto start:', err);
+    document.querySelector('#currentRoom').innerText =
+      'Camera/mic permission is required to auto create/join a room.';
+    throw err;
+  }
+
+  if (action === 'create') {
+    await createRoomWithId(requestedRoomId);
+  } else if (action === 'join') {
+    await joinRoomWithId(requestedRoomId);
+  }
 }
 
 async function createRoom() {
+  return createRoomInternal();
+}
+
+async function createRoomWithId(customRoomId) {
+  return createRoomInternal(customRoomId);
+}
+
+async function createRoomInternal(customRoomId) {
   document.querySelector('#createBtn').disabled = true;
   document.querySelector('#joinBtn').disabled = true;
   const db = firebase.firestore();
@@ -216,7 +285,29 @@ async function createRoom() {
 
   try {
     // Add code for creating a room here
-    const roomRef = await db.collection('rooms').doc();
+    const roomRef = customRoomId
+      ? db.collection('rooms').doc(customRoomId)
+      : db.collection('rooms').doc();
+
+    if (customRoomId) {
+      const existing = await roomRef.get();
+      if (existing.exists) {
+        document.querySelector('#currentRoom').innerText =
+          `Room id ${customRoomId} already exists. Use ?room_join=${customRoomId} to join instead.`;
+        document.querySelector('#createBtn').disabled = false;
+        document.querySelector('#joinBtn').disabled = false;
+        setChatStatus('Not connected');
+        setChatEnabled(false);
+        try {
+          peerConnection.close();
+        } catch {
+          // ignore
+        }
+        peerConnection = null;
+        return;
+      }
+    }
+
     roomId = roomRef.id;
     document.querySelector('#currentRoom').innerText = `Current room is ${roomId} - You are the caller!`;
   
@@ -299,6 +390,17 @@ function joinRoom() {
   roomDialog.open();
 }
 
+async function joinRoomWithId(customRoomId) {
+  document.querySelector('#createBtn').disabled = true;
+  document.querySelector('#joinBtn').disabled = true;
+
+  roomId = customRoomId;
+  console.log('Join room (URL): ', roomId);
+  document.querySelector('#currentRoom').innerText =
+    `Current room is ${roomId} - You are the callee!`;
+  await joinRoomById(roomId);
+}
+
 async function joinRoomById(roomId) {
   const db = firebase.firestore();
   const roomRef = db.collection('rooms').doc(`${roomId}`);
@@ -313,6 +415,14 @@ async function joinRoomById(roomId) {
     throw err;
   }
   console.log('Got room:', roomSnapshot.exists);
+
+  if (!roomSnapshot.exists) {
+    document.querySelector('#currentRoom').innerText =
+      `Room id ${roomId} was not found. Ask the caller to create it first.`;
+    document.querySelector('#createBtn').disabled = false;
+    document.querySelector('#joinBtn').disabled = false;
+    return;
+  }
 
   if (roomSnapshot.exists) {
     console.log('Create PeerConnection with configuration: ', configuration);
