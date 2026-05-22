@@ -32,16 +32,21 @@ Test mode ensures that you can freely write to the database during development. 
 Clone the GitHub repository from the command line:
 
 ``` mkdir ugv```
+
 ```cd ugv```
+
 it's free for Firebases WEBRTC
 
 ```git clone https://github.com/webrtc/FirebaseRTC```
+
+### Run command localhost 
+``` firebase serve --only hosting```
+
+
 #### our custom repositor 
 Please do not run in local need to configure
 
 ```git clone https://github.com/borhanreo/rescue_ugv.git```
-### Run command localhost 
-``` firebase serve --only hosting```
 
 ### run in cloud
 ```firebase serve --host 0.0.0.0 -p 5500```
@@ -67,9 +72,6 @@ firebase deploy --only firestore:rules
 ```npm install http-proxy```
 ### Run proxy server
 ```sudo node proxy_server.js ```
-
-
-
 
 
 # Auto start of Cloud machine
@@ -114,15 +116,15 @@ echo "✅ Proxy server started!"</pre>
 Now paste the following:
 ---
 #!/bin/bash
-# --------------------------------------
-# Script: start_firebase_and_proxy.sh
-# Purpose: Start Firebase and then Proxy Server
-# --------------------------------------
+#! --------------------------------------
+#! Script: start_firebase_and_proxy.sh
+#! Purpose: Start Firebase and then Proxy Server
+#! --------------------------------------
 
-cd /home/bjit/borhan/rescue_ugv || exit
+`cd /home/bjit/borhan/rescue_ugv || exit`
 
 # 1️⃣ Start Firebase and wait until it exits
-cd /home/bjit/borhan/rescue_ugv
+`cd /home/bjit/borhan/rescue_ugv`
 echo "Starting Proxy Server..."
 sudo /usr/bin/node /home/bjit/borhan/rescue_ugv/proxy_server.js
 echo "✅ Proxy server started!"
