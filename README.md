@@ -189,6 +189,7 @@ ExecStart=/usr/local/bin/start_proxy.sh
 Restart=on-failure
 
 [Install]
+WantedBy=multi-user.target
 </pre>
 💡 Notes:
 
@@ -201,28 +202,39 @@ If your proxy process needs root privileges, we’ll address that below 👇
 bash
 
 ### Open this 
+
 ```sudo visudo```
+
 2️⃣ Add this line at the bottom (replace with your username and exact path):
 
 ### need to add button line 
+
 ```bjit ALL=(ALL) NOPASSWD: /usr/bin/node /home/bjit/borhan/rescue_ugv/proxy_server.js```
 
 
-###⚡ Step 3 – Enable and Start the Service
 
+###⚡ Step 3 – Enable and Start the Service
+<pre>
 ```sudo systemctl daemon-reload```
+
 ```sudo systemctl enable firebase-proxy.service```
+
 ```sudo systemctl start firebase-proxy.service```
+
 ```sudo systemctl status firebase-proxy.service```
-```sudo systemctl restart firebase-proxy.service```
+
+sudo systemctl restart firebase-proxy.service
 
 ### Show Log 
-```sudo journalctl -u firebase-proxy.service -xe```
+sudo journalctl -u firebase-proxy.service -xe </pre>
 
 
 ### For proxy service only
 ```sudo systemctl daemon-reload```
+
 ```sudo systemctl enable proxy.service```
+
 ```sudo systemctl start proxy.service```
+
 ```sudo systemctl status proxy.service```
 ```sudo systemctl restart proxy.service```
