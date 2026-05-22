@@ -56,7 +56,7 @@ We’ll combine both commands in one script.
 
 bash
 
----
+---<pre>
 #!/bin/bash
 # --------------------------------------
 # Script: start_firebase_and_proxy.sh
@@ -76,7 +76,7 @@ cd
 cd /home/bjit/borhan/rescue_ugv
 echo "Starting Proxy Server..."
 sudo /usr/bin/node /home/bjit/borhan/rescue_ugv/proxy_server.js >> proxy.log 2>&1 &
-echo "✅ Proxy server started!"
+echo "✅ Proxy server started!"</pre>
 ---
 ## Permission
 ```sudo chmod +x /usr/local/bin/start_firebase_and_proxy.sh```
