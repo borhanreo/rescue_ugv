@@ -64,13 +64,4 @@ node_modules/
 # dotenv environment variables file
 .env
 
-# Local TLS certs / keys (do not commit)
-cert/
-*.pem
-*.key
-*.crt
-*.p12
-*.der
-*.jks
-
 .idea
