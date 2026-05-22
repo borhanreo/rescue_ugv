@@ -121,15 +121,15 @@ Now paste the following:
 #! Purpose: Start Firebase and then Proxy Server
 #! --------------------------------------
 
-`cd /home/bjit/borhan/rescue_ugv || exit`
+cd /home/bjit/borhan/rescue_ugv || exit
 
 # 1️⃣ Start Firebase and wait until it exits
-`cd /home/bjit/borhan/rescue_ugv`
+cd /home/bjit/borhan/rescue_ugv
 
 echo "Starting Proxy Server..."
 sudo /usr/bin/node /home/bjit/borhan/rescue_ugv/proxy_server.js
 echo "✅ Proxy server started!"</pre>
----
+
 👉 Replace:
 
 /home/youruser/my-firebase-project with your actual project directory
@@ -150,7 +150,7 @@ Paste this configuration:
 
 ini
 
----
+<pre>
 [Unit]
 Description=Firebase + Proxy Startup Service
 After=network-online.target
@@ -166,15 +166,14 @@ ExecStart=/usr/local/bin/start_firebase_and_proxy.sh
 Restart=on-failure
 
 [Install]
-WantedBy=multi-user.target
----
+WantedBy=multi-user.target</pre>
 
 ### for proxy server
 ```sudo nano /etc/systemd/system/proxy.service```
 
 
 
----
+<pre>
 [Unit]
 Description=Proxy Startup Service
 After=network-online.target
@@ -190,7 +189,7 @@ ExecStart=/usr/local/bin/start_proxy.sh
 Restart=on-failure
 
 [Install]
----
+</pre>
 💡 Notes:
 
 The service waits for the network to be online first
