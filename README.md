@@ -225,7 +225,7 @@ bash
 
 ```sudo systemctl status firebase-proxy.service```
 
-sudo systemctl restart firebase-proxy.service
+```sudo systemctl restart firebase-proxy.service```
 
 ### Show Log 
 
