@@ -214,8 +214,10 @@ bash
 
 
 ###⚡ Step 3 – Enable and Start the Service
-<pre>
+ #### load file to systemctl
+
 ```sudo systemctl daemon-reload```
+
 
 ```sudo systemctl enable firebase-proxy.service```
 
@@ -226,7 +228,8 @@ bash
 sudo systemctl restart firebase-proxy.service
 
 ### Show Log 
-sudo journalctl -u firebase-proxy.service -xe </pre>
+
+```sudo journalctl -u firebase-proxy.service -xe```
 
 
 ### For proxy service only
@@ -237,4 +240,5 @@ sudo journalctl -u firebase-proxy.service -xe </pre>
 ```sudo systemctl start proxy.service```
 
 ```sudo systemctl status proxy.service```
+
 ```sudo systemctl restart proxy.service```
