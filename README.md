@@ -114,7 +114,7 @@ echo "✅ Proxy server started!"</pre>
 
 
 Now paste the following:
----
+<pre>
 #!/bin/bash
 #! --------------------------------------
 #! Script: start_firebase_and_proxy.sh
@@ -125,9 +125,10 @@ Now paste the following:
 
 # 1️⃣ Start Firebase and wait until it exits
 `cd /home/bjit/borhan/rescue_ugv`
+
 echo "Starting Proxy Server..."
 sudo /usr/bin/node /home/bjit/borhan/rescue_ugv/proxy_server.js
-echo "✅ Proxy server started!"
+echo "✅ Proxy server started!"</pre>
 ---
 👉 Replace:
 
