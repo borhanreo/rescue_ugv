@@ -30,13 +30,16 @@ Test mode ensures that you can freely write to the database during development. 
 
 # 3. Get the sample code
 Clone the GitHub repository from the command line:
+
 ``` mkdir ugv```
 ```cd ugv```
 it's free for Firebases WEBRTC
+
 ```git clone https://github.com/webrtc/FirebaseRTC```
 #### our custom repositor 
 Please do not run in local need to configure
-```https://github.com/borhanreo/rescue_ugv.git```
+
+```git clone https://github.com/borhanreo/rescue_ugv.git```
 ### Run command localhost 
 ``` firebase serve --only hosting```
 
