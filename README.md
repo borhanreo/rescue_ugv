@@ -59,23 +59,21 @@ bash
 ---<pre>
 #!/bin/bash
 #!--------------------------------------
-# Script: start_firebase_and_proxy.sh
-# Purpose: Start Firebase and then Proxy Server
-# --------------------------------------
-
-cd /home/bjit/borhan/rescue_ugv || exit
-
-# 1️⃣ Start Firebase and wait until it exits
+#!Script: start_firebase_and_proxy.sh
+#!Purpose: Start Firebase and then Proxy Server
+#!--------------------------------------
+```cd /home/bjit/borhan/rescue_ugv || exit```
+#! 1️⃣ Start Firebase and wait until it exits
 echo "Starting Firebase Serve..."
-cd /home/bjit/borhan/rescue_ugv
-/usr/bin/firebase serve --host 0.0.0.0 -p 5500
+```cd /home/bjit/borhan/rescue_ugv```
+```/usr/bin/firebase serve --host 0.0.0.0 -p 5500```
 echo "Firebase Done"
-# 2️⃣ Start proxy server only after Firebase process completes
-sleep 5
-cd
-cd /home/bjit/borhan/rescue_ugv
+#! 2️⃣ Start proxy server only after Firebase process completes
+```sleep 5```
+``cd``
+```cd /home/bjit/borhan/rescue_ugv```
 echo "Starting Proxy Server..."
-sudo /usr/bin/node /home/bjit/borhan/rescue_ugv/proxy_server.js >> proxy.log 2>&1 &
+```sudo /usr/bin/node /home/bjit/borhan/rescue_ugv/proxy_server.js```
 echo "✅ Proxy server started!"</pre>
 
 ---
