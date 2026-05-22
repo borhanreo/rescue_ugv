@@ -11,9 +11,35 @@ create firestore databases
 ### following this instruction
 https://webrtc.org/getting-started/firebase-rtc-codelab
 
+# 2. Create and set up a Firebase project
+The application that you're going to build uses two Firebase services available on the web:
 
-### Run command 
+Cloud Firestore to save structured data on the Cloud and get instant notification when the data is updated
+Firebase Hosting to host and serve your static assets
+For this specific codelab, you've already configured Firebase Hosting in the project you'll be cloning. However, for Cloud Firestore, we'll walk you through the configuration and enabling of the services using the Firebase console.
+
+## Enable Cloud Firestore
+The app uses Cloud Firestore to save the chat messages and receive new chat messages.
+
+You'll need to enable Cloud Firestore:
+
+In the Firebase console menu's Develop section, click Database.
+Click Create database in the Cloud Firestore pane.
+Select the Start in test mode option, then click Enable after reading the disclaimer about the security rules.
+Test mode ensures that you can freely write to the database during development. We'll make our database more secure later on in this codelab.
+
+# 3. Get the sample code
+Clone the GitHub repository from the command line:
+``` mkdir ugv```
+```cd ugv```
+it's free for Firebases WEBRTC
+```git clone https://github.com/webrtc/FirebaseRTC```
+#### our custom repositor 
+Please do not run in local need to configure
+```https://github.com/borhanreo/rescue_ugv.git```
+### Run command localhost 
 ``` firebase serve --only hosting```
+
 ### run in cloud
 ```firebase serve --host 0.0.0.0 -p 5500```
 
@@ -52,11 +78,8 @@ We’ll combine both commands in one script.
 ### For webRTC server firebases
 ```sudo nano /usr/local/bin/start_firebase_and_proxy.sh```
 
-
-
-bash
-
----<pre>
+Add this text 
+<pre>
 #!/bin/bash
 #!--------------------------------------
 #!Script: start_firebase_and_proxy.sh
