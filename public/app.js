@@ -54,7 +54,7 @@ const ROBOT_CMD_MAP = {
 
   // Defaults for the additional requested buttons.
   // If your robot uses different codes/values, change these.
-  pos_hold: { t: 5, v: DEFAULT_CMD_V },
+  pos_hold: { t: 0, v: DEFAULT_CMD_V },
   alt_hold: { t: 6, v: DEFAULT_CMD_V },
   extra_1: { t: 7, v: DEFAULT_CMD_V },
   extra_2: { t: 8, v: DEFAULT_CMD_V },
