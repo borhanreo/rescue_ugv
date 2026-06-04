@@ -148,3 +148,21 @@ div#robotStatus {
     flex-wrap: wrap;
     margin-top: 0.75em;
 }
+
+.servo-controls {
+    margin-top: 1em;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75em;
+    max-width: 560px;
+}
+
+.servo-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+}
+
+.servo-item input[type="range"] {
+    width: 100%;
+}

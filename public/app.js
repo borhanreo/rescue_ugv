@@ -38,6 +38,10 @@ const chatEls = {
 const robotEls = {
   status: null,
   buttons: [],
+  servo1Slider: null,
+  servo2Slider: null,
+  servo1Value: null,
+  servo2Value: null,
 };
 
 const DEFAULT_CMD_V = '100';
@@ -55,6 +59,11 @@ const ROBOT_CMD_MAP = {
   extra_1: { t: 7, v: DEFAULT_CMD_V },
   extra_2: { t: 8, v: DEFAULT_CMD_V },
   extra_3: { t: 9, v: DEFAULT_CMD_V },
+};
+
+const SERVO_CMD_MAP = {
+  servo1: 16,
+  servo2: 17,
 };
 
 function getRoomActionFromUrl() {
@@ -159,8 +168,12 @@ function setupDataChannel(channel) {
 function initRobotUi() {
   robotEls.status = document.querySelector('#robotStatus');
   robotEls.buttons = Array.from(document.querySelectorAll('[data-cmd]'));
+  robotEls.servo1Slider = document.querySelector('#servo1Pot');
+  robotEls.servo2Slider = document.querySelector('#servo2Pot');
+  robotEls.servo1Value = document.querySelector('#servo1Value');
+  robotEls.servo2Value = document.querySelector('#servo2Value');
 
-  if (!robotEls.status || robotEls.buttons.length === 0) {
+  if (!robotEls.status || robotEls.buttons.length === 0 || !robotEls.servo1Slider || !robotEls.servo2Slider) {
     console.warn('Robot UI elements not found; robot controls disabled.');
     return;
   }
@@ -174,6 +187,9 @@ function initRobotUi() {
       sendRobotCommandByKey(cmdKey);
     });
   });
+
+  bindServoSlider(robotEls.servo1Slider, robotEls.servo1Value, 'servo1');
+  bindServoSlider(robotEls.servo2Slider, robotEls.servo2Value, 'servo2');
 }
 
 function setRobotStatus(text) {
@@ -184,6 +200,37 @@ function setRobotControlsEnabled(enabled) {
   robotEls.buttons.forEach((btn) => {
     btn.disabled = !enabled;
   });
+  if (robotEls.servo1Slider) robotEls.servo1Slider.disabled = !enabled;
+  if (robotEls.servo2Slider) robotEls.servo2Slider.disabled = !enabled;
+}
+
+function bindServoSlider(sliderEl, valueEl, servoKey) {
+  if (!sliderEl) return;
+
+  const updateLabel = () => {
+    if (valueEl) valueEl.textContent = sliderEl.value;
+  };
+
+  const sendValue = () => {
+    const raw = Number(sliderEl.value);
+    const angle = Number.isFinite(raw) ? Math.max(0, Math.min(180, Math.round(raw))) : 0;
+    sliderEl.value = String(angle);
+    updateLabel();
+    sendServoCommand(servoKey, angle);
+  };
+
+  updateLabel();
+  sliderEl.addEventListener('input', sendValue);
+  sliderEl.addEventListener('change', sendValue);
+}
+
+function sendServoCommand(servoKey, angle) {
+  const t = SERVO_CMD_MAP[servoKey];
+  if (!t) {
+    console.warn('Unknown servo key:', servoKey);
+    return;
+  }
+  sendRobotPayload({ t, v: angle });
 }
 
 function sendRobotCommandByKey(cmdKey) {
@@ -193,11 +240,15 @@ function sendRobotCommandByKey(cmdKey) {
     console.warn('Unknown robot command key:', cmdKey);
     return;
   }
+  sendRobotPayload(cmd);
+}
+
+function sendRobotPayload(payload) {
   if (!dataChannel || dataChannel.readyState !== 'open') {
     setRobotStatus('Not connected');
     return;
   }
-  const jsonText = JSON.stringify(cmd);
+  const jsonText = JSON.stringify(payload);
   dataChannel.send(jsonText);
   console.log('Sent robot command:', jsonText);
 }
