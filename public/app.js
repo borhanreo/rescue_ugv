@@ -40,11 +40,13 @@ const robotEls = {
   buttons: [],
   servo1Slider: null,
   servo2Slider: null,
+  speedSlider: null,
   servo1Value: null,
   servo2Value: null,
+  speedValue: null,
 };
 
-const DEFAULT_CMD_V = '100';
+const DEFAULT_CMD_V = 100;
 
 const ROBOT_CMD_MAP = {
   forward: { t: 1, v: DEFAULT_CMD_V },
@@ -170,10 +172,12 @@ function initRobotUi() {
   robotEls.buttons = Array.from(document.querySelectorAll('[data-cmd]'));
   robotEls.servo1Slider = document.querySelector('#servo1Pot');
   robotEls.servo2Slider = document.querySelector('#servo2Pot');
+  robotEls.speedSlider = document.querySelector('#speedPot');
   robotEls.servo1Value = document.querySelector('#servo1Value');
   robotEls.servo2Value = document.querySelector('#servo2Value');
+  robotEls.speedValue = document.querySelector('#speedValue');
 
-  if (!robotEls.status || robotEls.buttons.length === 0 || !robotEls.servo1Slider || !robotEls.servo2Slider) {
+  if (!robotEls.status || robotEls.buttons.length === 0 || !robotEls.servo1Slider || !robotEls.servo2Slider || !robotEls.speedSlider) {
     console.warn('Robot UI elements not found; robot controls disabled.');
     return;
   }
@@ -190,6 +194,7 @@ function initRobotUi() {
 
   bindServoSlider(robotEls.servo1Slider, robotEls.servo1Value, 'servo1');
   bindServoSlider(robotEls.servo2Slider, robotEls.servo2Value, 'servo2');
+  bindSpeedSlider(robotEls.speedSlider, robotEls.speedValue);
 }
 
 function setRobotStatus(text) {
@@ -202,6 +207,28 @@ function setRobotControlsEnabled(enabled) {
   });
   if (robotEls.servo1Slider) robotEls.servo1Slider.disabled = !enabled;
   if (robotEls.servo2Slider) robotEls.servo2Slider.disabled = !enabled;
+  if (robotEls.speedSlider) robotEls.speedSlider.disabled = !enabled;
+}
+
+function bindSpeedSlider(sliderEl, valueEl) {
+  if (!sliderEl) return;
+
+  const updateLabel = () => {
+    if (valueEl) valueEl.textContent = sliderEl.value;
+  };
+
+  updateLabel();
+  sliderEl.addEventListener('input', updateLabel);
+  sliderEl.addEventListener('change', updateLabel);
+}
+
+function getCurrentSpeedValue() {
+  if (!robotEls.speedSlider) return DEFAULT_CMD_V;
+  const raw = Number(robotEls.speedSlider.value);
+  const speed = Number.isFinite(raw) ? Math.max(0, Math.min(255, Math.round(raw))) : DEFAULT_CMD_V;
+  robotEls.speedSlider.value = String(speed);
+  if (robotEls.speedValue) robotEls.speedValue.textContent = String(speed);
+  return speed;
 }
 
 function bindServoSlider(sliderEl, valueEl, servoKey) {
@@ -240,7 +267,11 @@ function sendRobotCommandByKey(cmdKey) {
     console.warn('Unknown robot command key:', cmdKey);
     return;
   }
-  sendRobotPayload(cmd);
+  const payload = { ...cmd };
+  if (payload.v === DEFAULT_CMD_V) {
+    payload.v = getCurrentSpeedValue();
+  }
+  sendRobotPayload(payload);
 }
 
 function sendRobotPayload(payload) {
