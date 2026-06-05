@@ -175,30 +175,13 @@ function appendMqttMessage(topic, payload, timestamp) {
 
 function connectMqttMonitor() {
   const bridgeOrigin = (() => {
-    // 1) Explicit override via URL: ?bridge=https://your-public-ip[:port]
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const fromQuery = (params.get('bridge') || '').trim();
-      if (fromQuery) return fromQuery.replace(/\/$/, '');
-    } catch {
-      // ignore
-    }
-
-    // 2) Optional global override: window.MQTT_BRIDGE_ORIGIN = 'https://...'
-    try {
-      const fromGlobal = (window.MQTT_BRIDGE_ORIGIN || '').trim();
-      if (fromGlobal) return fromGlobal.replace(/\/$/, '');
-    } catch {
-      // ignore
-    }
-
-    // 3) Heuristic default: if served from Firebase dev server (often :5500 over http),
-    //    assume the bridge is the HTTPS proxy on the same hostname.
+    // If the page is served from Firebase dev server (commonly :5500 over http),
+    // the Socket.IO bridge is still the HTTPS proxy on the same hostname.
     const hostname = window.location.hostname;
     const isLikelyFirebaseDevServer = window.location.port === '5500' || window.location.protocol === 'http:';
-    if (isLikelyFirebaseDevServer) return `https://${hostname}`;
-
-    // Otherwise, same origin.
+    if (isLikelyFirebaseDevServer) {
+      return `https://${hostname}`;
+    }
     return window.location.origin;
   })();
 
@@ -227,8 +210,6 @@ function connectMqttMonitor() {
       await loadSocketIoClient('https://cdn.socket.io/4.8.1/socket.io.min.js');
     }
   };
-
-  setMqttStatus(`MQTT: Connecting to ${bridgeOrigin}...`);
 
   (async () => {
     try {
@@ -259,7 +240,7 @@ function connectMqttMonitor() {
 
     socket.on('connect_error', (err) => {
       const msg = (err && err.message) ? err.message : String(err || 'Unknown error');
-      setMqttStatus(`MQTT: Web socket error - ${msg} (bridge: ${bridgeOrigin})`);
+      setMqttStatus(`MQTT: Web socket error - ${msg}`);
     });
 
     socket.on('mqtt_status', (status) => {
