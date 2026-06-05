@@ -32,6 +32,11 @@ let mqttBridgeConnected = false;
 let mqttBrokerConnected = false;
 let inferredDeviceId = null;
 
+let robotDcStatusText = 'Not connected';
+let robotMqttStatusText = 'MQTT disconnected';
+
+const MQTT_CMD_KEYS = new Set(['restart', 'reload', 'force_stop', 'get_info']);
+
 
 const chatEls = {
   status: null,
@@ -253,8 +258,8 @@ function connectMqttMonitor() {
       setMqttStatus('MQTT: Web socket disconnected');
       mqttBridgeConnected = false;
       mqttBrokerConnected = false;
-      setRobotStatus('MQTT disconnected');
-      setRobotControlsEnabled(false);
+      setRobotMqttStatus('MQTT disconnected');
+      setMqttButtonsEnabled(false);
     });
 
     socket.on('connect_error', (err) => {
@@ -262,8 +267,8 @@ function connectMqttMonitor() {
       setMqttStatus(`MQTT: Web socket error - ${msg}`);
       mqttBridgeConnected = false;
       mqttBrokerConnected = false;
-      setRobotStatus('MQTT connection error');
-      setRobotControlsEnabled(false);
+      setRobotMqttStatus('MQTT connection error');
+      setMqttButtonsEnabled(false);
     });
 
     socket.on('mqtt_status', (status) => {
@@ -271,28 +276,28 @@ function connectMqttMonitor() {
       if (status.connected) {
         setMqttStatus(`MQTT: Connected (topic: ${status.topic || '#'})`);
         mqttBrokerConnected = true;
-        setRobotStatus(inferredDeviceId ? `MQTT connected (device: ${inferredDeviceId})` : 'MQTT connected');
-        setRobotControlsEnabled(true);
+        setRobotMqttStatus(inferredDeviceId ? `MQTT connected (device: ${inferredDeviceId})` : 'MQTT connected');
+        setMqttButtonsEnabled(true);
         return;
       }
       if (status.reconnecting) {
         setMqttStatus('MQTT: Reconnecting...');
         mqttBrokerConnected = false;
-        setRobotStatus('MQTT reconnecting...');
-        setRobotControlsEnabled(false);
+        setRobotMqttStatus('MQTT reconnecting...');
+        setMqttButtonsEnabled(false);
         return;
       }
       if (status.error) {
         setMqttStatus(`MQTT: Error - ${status.error}`);
         mqttBrokerConnected = false;
-        setRobotStatus(`MQTT error: ${status.error}`);
-        setRobotControlsEnabled(false);
+        setRobotMqttStatus(`MQTT error: ${status.error}`);
+        setMqttButtonsEnabled(false);
         return;
       }
       setMqttStatus('MQTT: Disconnected');
       mqttBrokerConnected = false;
-      setRobotStatus('MQTT disconnected');
-      setRobotControlsEnabled(false);
+      setRobotMqttStatus('MQTT disconnected');
+      setMqttButtonsEnabled(false);
     });
 
     socket.on('mqtt_publish_error', (err) => {
@@ -314,7 +319,7 @@ function connectMqttMonitor() {
           if (device) {
             inferredDeviceId = device;
             if (mqttBrokerConnected) {
-              setRobotStatus(`MQTT connected (device: ${inferredDeviceId})`);
+              setRobotMqttStatus(`MQTT connected (device: ${inferredDeviceId})`);
             }
           }
         }
@@ -347,28 +352,28 @@ function getMqttCommandTopic() {
 
 function mqttPublishJson(obj) {
   if (!mqttSocket || !mqttBridgeConnected) {
-    setRobotStatus('MQTT bridge not connected');
+    setRobotMqttStatus('MQTT bridge not connected');
     return;
   }
   if (!mqttBrokerConnected) {
-    setRobotStatus('MQTT broker not connected');
+    setRobotMqttStatus('MQTT broker not connected');
     return;
   }
 
   const topic = getMqttCommandTopic();
   if (!topic) {
-    setRobotStatus('No device yet (wait telemetry)');
+    setRobotMqttStatus('No device yet (wait telemetry)');
     return;
   }
 
   const payload = JSON.stringify(obj);
   mqttSocket.emit('mqtt_publish', { topic, payload }, (ack) => {
     if (ack && ack.ok) {
-      setRobotStatus(`Sent MQTT command → ${topic}`);
+      setRobotMqttStatus(`Sent MQTT command → ${topic}`);
       return;
     }
     const err = (ack && ack.error) ? ack.error : 'Publish failed';
-    setRobotStatus(`MQTT publish failed: ${err}`);
+    setRobotMqttStatus(`MQTT publish failed: ${err}`);
   });
 }
 
@@ -377,10 +382,14 @@ function setupDataChannel(channel) {
   dataChannel.onopen = () => {
     setChatStatus('Connected');
     setChatEnabled(true);
+    setRobotDcStatus('Connected');
+    setRobotControlsEnabled(true);
   };
   dataChannel.onclose = () => {
     setChatStatus('Closed');
     setChatEnabled(false);
+    setRobotDcStatus('Closed');
+    setRobotControlsEnabled(false);
   };
   dataChannel.onerror = (err) => {
     console.error('DataChannel error:', err);
@@ -402,6 +411,8 @@ function setupDataChannel(channel) {
 function initRobotUi() {
   robotEls.status = document.querySelector('#robotStatus');
   robotEls.buttons = Array.from(document.querySelectorAll('[data-cmd]'));
+  robotEls.mqttButtons = robotEls.buttons.filter((btn) => (btn.getAttribute('data-transport') || '') === 'mqtt');
+  robotEls.dcButtons = robotEls.buttons.filter((btn) => (btn.getAttribute('data-transport') || '') !== 'mqtt');
   robotEls.servo1Slider = document.querySelector('#servo1Pot');
   robotEls.servo2Slider = document.querySelector('#servo2Pot');
   robotEls.speedSlider = document.querySelector('#speedPot');
@@ -415,7 +426,9 @@ function initRobotUi() {
   }
 
   setRobotControlsEnabled(false);
-  setRobotStatus('MQTT disconnected');
+  setMqttButtonsEnabled(false);
+  setRobotDcStatus('Not connected');
+  setRobotMqttStatus('MQTT disconnected');
 
   robotEls.buttons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -430,16 +443,40 @@ function initRobotUi() {
 }
 
 function setRobotStatus(text) {
-  if (robotEls.status) robotEls.status.textContent = text;
+  // Backward-compatible alias for existing callers.
+  setRobotDcStatus(text);
+}
+
+function renderRobotStatus() {
+  if (!robotEls.status) return;
+  robotEls.status.textContent = `DC: ${robotDcStatusText} | MQTT: ${robotMqttStatusText}`;
+}
+
+function setRobotDcStatus(text) {
+  robotDcStatusText = text;
+  renderRobotStatus();
+}
+
+function setRobotMqttStatus(text) {
+  robotMqttStatusText = text;
+  renderRobotStatus();
 }
 
 function setRobotControlsEnabled(enabled) {
-  robotEls.buttons.forEach((btn) => {
+  const buttons = robotEls.dcButtons || robotEls.buttons;
+  buttons.forEach((btn) => {
     btn.disabled = !enabled;
   });
   if (robotEls.servo1Slider) robotEls.servo1Slider.disabled = !enabled;
   if (robotEls.servo2Slider) robotEls.servo2Slider.disabled = !enabled;
   if (robotEls.speedSlider) robotEls.speedSlider.disabled = !enabled;
+}
+
+function setMqttButtonsEnabled(enabled) {
+  const buttons = robotEls.mqttButtons || [];
+  buttons.forEach((btn) => {
+    btn.disabled = !enabled;
+  });
 }
 
 function bindSpeedSlider(sliderEl, valueEl) {
@@ -503,11 +540,24 @@ function sendRobotCommandByKey(cmdKey) {
   if (payload.v === DEFAULT_CMD_V) {
     payload.v = getCurrentSpeedValue();
   }
+
+  if (MQTT_CMD_KEYS.has(cmdKey)) {
+    mqttPublishJson(payload);
+    return;
+  }
+
   sendRobotPayload(payload);
 }
 
 function sendRobotPayload(payload) {
-  mqttPublishJson(payload);
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    setRobotDcStatus('Not connected');
+    setRobotControlsEnabled(false);
+    return;
+  }
+  const jsonText = JSON.stringify(payload);
+  dataChannel.send(jsonText);
+  console.log('Sent robot command (DataChannel):', jsonText);
 }
 
 function sendChatMessage() {
