@@ -27,6 +27,11 @@ let roomId = null;
 
 let dataChannel = null;
 
+let mqttSocket = null;
+let mqttBridgeConnected = false;
+let mqttBrokerConnected = false;
+let inferredDeviceId = null;
+
 
 const chatEls = {
   status: null,
@@ -236,41 +241,135 @@ function connectMqttMonitor() {
       path: '/socket.io',
     });
 
+    mqttSocket = socket;
+
     socket.on('connect', () => {
       setMqttStatus('MQTT: Web socket connected');
+      mqttBridgeConnected = true;
+      setRobotStatus('MQTT bridge connected');
     });
 
     socket.on('disconnect', () => {
       setMqttStatus('MQTT: Web socket disconnected');
+      mqttBridgeConnected = false;
+      mqttBrokerConnected = false;
+      setRobotStatus('MQTT disconnected');
+      setRobotControlsEnabled(false);
     });
 
     socket.on('connect_error', (err) => {
       const msg = (err && err.message) ? err.message : String(err || 'Unknown error');
       setMqttStatus(`MQTT: Web socket error - ${msg}`);
+      mqttBridgeConnected = false;
+      mqttBrokerConnected = false;
+      setRobotStatus('MQTT connection error');
+      setRobotControlsEnabled(false);
     });
 
     socket.on('mqtt_status', (status) => {
       if (!status || typeof status !== 'object') return;
       if (status.connected) {
         setMqttStatus(`MQTT: Connected (topic: ${status.topic || '#'})`);
+        mqttBrokerConnected = true;
+        setRobotStatus(inferredDeviceId ? `MQTT connected (device: ${inferredDeviceId})` : 'MQTT connected');
+        setRobotControlsEnabled(true);
         return;
       }
       if (status.reconnecting) {
         setMqttStatus('MQTT: Reconnecting...');
+        mqttBrokerConnected = false;
+        setRobotStatus('MQTT reconnecting...');
+        setRobotControlsEnabled(false);
         return;
       }
       if (status.error) {
         setMqttStatus(`MQTT: Error - ${status.error}`);
+        mqttBrokerConnected = false;
+        setRobotStatus(`MQTT error: ${status.error}`);
+        setRobotControlsEnabled(false);
         return;
       }
       setMqttStatus('MQTT: Disconnected');
+      mqttBrokerConnected = false;
+      setRobotStatus('MQTT disconnected');
+      setRobotControlsEnabled(false);
+    });
+
+    socket.on('mqtt_publish_error', (err) => {
+      const msg = (err && err.error) ? err.error : String(err || 'Publish error');
+      console.warn('MQTT publish error:', msg);
     });
 
     socket.on('mqtt_message', (message) => {
       if (!message || typeof message !== 'object') return;
       appendMqttMessage(message.topic || '', message.payload || '', message.timestamp);
+
+      // Infer device id from telemetry topic: v301/ugv/telemetry/{DEVICE_ID}
+      try {
+        const topic = String(message.topic || '');
+        const prefix = 'v301/ugv/telemetry/';
+        if (!inferredDeviceId && topic.startsWith(prefix)) {
+          const rest = topic.slice(prefix.length);
+          const device = rest.split('/')[0].trim();
+          if (device) {
+            inferredDeviceId = device;
+            if (mqttBrokerConnected) {
+              setRobotStatus(`MQTT connected (device: ${inferredDeviceId})`);
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
     });
   })();
+}
+
+function getMqttCommandTopic() {
+  // Optional overrides:
+  // - ?cmd_topic=v301/ugv/commands/<id>
+  // - ?device=<id>  (builds v301/ugv/commands/<id>)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const cmdTopic = (params.get('cmd_topic') || '').trim();
+    if (cmdTopic) return cmdTopic;
+    const device = (params.get('device') || '').trim();
+    if (device) return `v301/ugv/commands/${device}`;
+  } catch {
+    // ignore
+  }
+
+  if (inferredDeviceId) {
+    return `v301/ugv/commands/${inferredDeviceId}`;
+  }
+  return null;
+}
+
+function mqttPublishJson(obj) {
+  if (!mqttSocket || !mqttBridgeConnected) {
+    setRobotStatus('MQTT bridge not connected');
+    return;
+  }
+  if (!mqttBrokerConnected) {
+    setRobotStatus('MQTT broker not connected');
+    return;
+  }
+
+  const topic = getMqttCommandTopic();
+  if (!topic) {
+    setRobotStatus('No device yet (wait telemetry)');
+    return;
+  }
+
+  const payload = JSON.stringify(obj);
+  mqttSocket.emit('mqtt_publish', { topic, payload }, (ack) => {
+    if (ack && ack.ok) {
+      setRobotStatus(`Sent MQTT command → ${topic}`);
+      return;
+    }
+    const err = (ack && ack.error) ? ack.error : 'Publish failed';
+    setRobotStatus(`MQTT publish failed: ${err}`);
+  });
 }
 
 function setupDataChannel(channel) {
@@ -278,14 +377,10 @@ function setupDataChannel(channel) {
   dataChannel.onopen = () => {
     setChatStatus('Connected');
     setChatEnabled(true);
-    setRobotStatus('Connected');
-    setRobotControlsEnabled(true);
   };
   dataChannel.onclose = () => {
     setChatStatus('Closed');
     setChatEnabled(false);
-    setRobotStatus('Closed');
-    setRobotControlsEnabled(false);
   };
   dataChannel.onerror = (err) => {
     console.error('DataChannel error:', err);
@@ -320,7 +415,7 @@ function initRobotUi() {
   }
 
   setRobotControlsEnabled(false);
-  setRobotStatus('Not connected');
+  setRobotStatus('MQTT disconnected');
 
   robotEls.buttons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -412,13 +507,7 @@ function sendRobotCommandByKey(cmdKey) {
 }
 
 function sendRobotPayload(payload) {
-  if (!dataChannel || dataChannel.readyState !== 'open') {
-    setRobotStatus('Not connected');
-    return;
-  }
-  const jsonText = JSON.stringify(payload);
-  dataChannel.send(jsonText);
-  console.log('Sent robot command:', jsonText);
+  mqttPublishJson(payload);
 }
 
 function sendChatMessage() {

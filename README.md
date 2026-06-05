@@ -86,6 +86,16 @@ The proxy server bridges MQTT → the web UI via Socket.IO.
 So, if your web UI should display robot telemetry, set `MQTT_SUBSCRIBE_TOPIC` in `.env` to:
 `v301/ugv/telemetry/#`
 
+### Web UI → MQTT commands
+Robot control buttons publish commands via the proxy to MQTT.
+
+- Command topic used by the UI (default): `v301/ugv/commands/<DEVICE_ID>`
+- `<DEVICE_ID>` is inferred automatically from the first telemetry topic seen: `v301/ugv/telemetry/<DEVICE_ID>`
+
+If you want to force a target device/topic (recommended if telemetry is not arriving yet), open the page with:
+- `?device=<DEVICE_ID>` (builds `v301/ugv/commands/<DEVICE_ID>`), or
+- `?cmd_topic=v301/ugv/commands/<DEVICE_ID>`
+
 If the proxy is subscribed to a different topic (for example `v301/webportal`) you may see:
 "MQTT connected" and "MQTT subscribed" but **no incoming messages**.
 

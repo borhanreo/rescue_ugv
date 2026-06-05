@@ -18,6 +18,7 @@ const MQTT_USERNAME = process.env.MQTT_USERNAME || '';
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || '';
 const MQTT_CLIENT_ID = process.env.MQTT_CLIENT_ID || `rescue-web-${Math.random().toString(16).slice(2, 10)}`;
 const MQTT_SUBSCRIBE_TOPIC = process.env.MQTT_SUBSCRIBE_TOPIC || '#';
+const MQTT_PUBLISH_TOPIC = process.env.MQTT_PUBLISH_TOPIC || '';
 
 const proxy = httpProxy.createProxyServer({
   target: FIREBASE_TARGET,
@@ -108,6 +109,45 @@ io.on('connection', (socket) => {
   socket.emit('mqtt_status', {
     connected: mqttClient.connected,
     topic: MQTT_SUBSCRIBE_TOPIC,
+  });
+
+  socket.on('mqtt_publish', (message, ack) => {
+    try {
+      if (!mqttClient.connected) {
+        const err = 'MQTT client not connected';
+        if (typeof ack === 'function') ack({ ok: false, error: err });
+        socket.emit('mqtt_publish_error', { error: err });
+        return;
+      }
+
+      const topic = (message && typeof message === 'object' && typeof message.topic === 'string')
+        ? message.topic.trim()
+        : (MQTT_PUBLISH_TOPIC || '').trim();
+
+      if (!topic) {
+        const err = 'MQTT publish topic not set';
+        if (typeof ack === 'function') ack({ ok: false, error: err });
+        socket.emit('mqtt_publish_error', { error: err });
+        return;
+      }
+
+      const payload = (message && typeof message === 'object' && typeof message.payload === 'string')
+        ? message.payload
+        : '';
+
+      mqttClient.publish(topic, payload, { qos: 0, retain: false }, (err) => {
+        if (err) {
+          if (typeof ack === 'function') ack({ ok: false, error: err.message });
+          socket.emit('mqtt_publish_error', { error: err.message, topic });
+          return;
+        }
+        if (typeof ack === 'function') ack({ ok: true, topic });
+      });
+    } catch (e) {
+      const msg = e && e.message ? e.message : String(e);
+      if (typeof ack === 'function') ack({ ok: false, error: msg });
+      socket.emit('mqtt_publish_error', { error: msg });
+    }
   });
 
   socket.on('disconnect', () => {
