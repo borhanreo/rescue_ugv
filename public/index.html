@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to FirebaseRTC</title>
+    <title>Welcome to PIC Of Rescue Unmanned Aerial Vehicle</title>
     <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -18,7 +18,7 @@
     <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
-<h1>Welcome to FirebaseRTC!</h1>
+<h1>Welcome to POC Of Rescue Unmanned Aerial Vehicle</h1>
 <div id="buttons">
     <button class="mdc-button mdc-button--raised" id="cameraBtn">
         <i class="material-icons mdc-button__icon" aria-hidden="true">perm_camera_mic</i>
@@ -41,30 +41,14 @@
     <span id="currentRoom"></span>
 </div>
 <div id="videos">
-    <video id="localVideo" muted autoplay playsinline></video>
+    <video style="display: none;" id="localVideo" muted autoplay playsinline></video>
+
     <video id="remoteVideo" autoplay playsinline></video>
-</div>
-
-<div id="chat">
-    <h2>DataChannel chat</h2>
-    <div id="chatStatus">Not connected</div>
-    <div id="messages" aria-live="polite"></div>
-    <div id="chatControls">
-        <div class="mdc-text-field" id="chatTextField">
-            <input type="text" id="msgInput" class="mdc-text-field__input" placeholder="Type a message" disabled>
-            <div class="mdc-line-ripple"></div>
-        </div>
-        <button class="mdc-button mdc-button--raised" id="sendMsgBtn" disabled>
-            <span class="mdc-button__label">Send</span>
-        </button>
-    </div>
-</div>
-
-<div id="robot">
-    <h2>Robot controls</h2>
-    <div id="robotStatus">Not connected</div>
+    
     <div id="robotControls" aria-label="Robot controls">
         <div class="robot-grid">
+            <div></div>
+            <div id="robotStatus">Not connected</div>
             <div></div>
             <button class="mdc-button mdc-button--raised" id="btnForward" data-cmd="forward" disabled>
                 <span class="mdc-button__label">Forward</span>
@@ -119,6 +103,33 @@
         </div>
     </div>
 </div>
+
+<div id="mqttPanel" aria-label="MQTT monitor">
+    <h2>MQTT Monitor</h2>
+    <div id="mqttStatus">MQTT: Not connected</div>
+    <div id="mqttMessages"></div>
+</div>
+
+<div id="chat" style="display: none;">
+    <h2>DataChannel chat</h2>
+    <div id="chatStatus">Not connected</div>
+    <div id="messages" aria-live="polite"></div>
+    <div id="chatControls">
+        <div class="mdc-text-field" id="chatTextField">
+            <input type="text" id="msgInput" class="mdc-text-field__input" placeholder="Type a message" disabled>
+            <div class="mdc-line-ripple"></div>
+        </div>
+        <button class="mdc-button mdc-button--raised" id="sendMsgBtn" disabled>
+            <span class="mdc-button__label">Send</span>
+        </button>
+    </div>
+</div>
+
+<div id="robot" style="display: none;">
+    <h2>Robot controls</h2>
+    
+    <!-- Add robot control buttons here -->
+</div>
 <div class="mdc-dialog"
      id="room-dialog"
      role="alertdialog"
@@ -149,6 +160,7 @@
     </div>
     <div class="mdc-dialog__scrim"></div>
 </div>
+<script src="/socket.io/socket.io.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -166,3 +166,29 @@ div#robotStatus {
 .servo-item input[type="range"] {
     width: 100%;
 }
+
+div#mqttPanel {
+    margin: 1em;
+    max-width: 1320px;
+    background: white;
+    padding: 0.75em;
+    border-radius: 3px;
+}
+
+div#mqttStatus {
+    margin: 0.25em 0 0.5em;
+}
+
+div#mqttMessages {
+    background: #f8f9fb;
+    border: 1px solid #d6dbe1;
+    border-radius: 3px;
+    min-height: 140px;
+    max-height: 320px;
+    overflow: auto;
+    padding: 0.6em;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}

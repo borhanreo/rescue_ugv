@@ -1,0 +1,15 @@
+{
+	"name": "rescue-ugv-proxy-mqtt-bridge",
+	"version": "1.0.0",
+	"private": true,
+	"main": "proxy_server.js",
+	"scripts": {
+		"start": "node proxy_server.js"
+	},
+	"dependencies": {
+		"dotenv": "^16.4.5",
+		"http-proxy": "^1.18.1",
+		"mqtt": "^5.10.3",
+		"socket.io": "^4.8.1"
+	}
+}

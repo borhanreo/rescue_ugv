@@ -35,6 +35,12 @@ const chatEls = {
   sendBtn: null,
 };
 
+const mqttEls = {
+  status: null,
+  messages: null,
+  maxLines: 250,
+};
+
 const robotEls = {
   status: null,
   buttons: [],
@@ -134,6 +140,150 @@ function appendChatMessage(prefix, message) {
   line.textContent = `${prefix}: ${message}`;
   chatEls.messages.appendChild(line);
   chatEls.messages.scrollTop = chatEls.messages.scrollHeight;
+}
+
+function initMqttUi() {
+  mqttEls.status = document.querySelector('#mqttStatus');
+  mqttEls.messages = document.querySelector('#mqttMessages');
+
+  if (!mqttEls.status || !mqttEls.messages) {
+    console.warn('MQTT UI elements not found; monitor disabled.');
+    return;
+  }
+
+  setMqttStatus('MQTT: Connecting...');
+  connectMqttMonitor();
+}
+
+function setMqttStatus(text) {
+  if (mqttEls.status) mqttEls.status.textContent = text;
+}
+
+function appendMqttMessage(topic, payload, timestamp) {
+  if (!mqttEls.messages) return;
+  const line = document.createElement('div');
+  const ts = timestamp || new Date().toISOString();
+  line.textContent = `[${ts}] ${topic}: ${payload}`;
+  mqttEls.messages.appendChild(line);
+
+  while (mqttEls.messages.childElementCount > mqttEls.maxLines) {
+    mqttEls.messages.removeChild(mqttEls.messages.firstChild);
+  }
+
+  mqttEls.messages.scrollTop = mqttEls.messages.scrollHeight;
+}
+
+function connectMqttMonitor() {
+  const bridgeOrigin = (() => {
+    // 1) Explicit override via URL: ?bridge=https://your-public-ip[:port]
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = (params.get('bridge') || '').trim();
+      if (fromQuery) return fromQuery.replace(/\/$/, '');
+    } catch {
+      // ignore
+    }
+
+    // 2) Optional global override: window.MQTT_BRIDGE_ORIGIN = 'https://...'
+    try {
+      const fromGlobal = (window.MQTT_BRIDGE_ORIGIN || '').trim();
+      if (fromGlobal) return fromGlobal.replace(/\/$/, '');
+    } catch {
+      // ignore
+    }
+
+    // 3) Heuristic default: if served from Firebase dev server (often :5500 over http),
+    //    assume the bridge is the HTTPS proxy on the same hostname.
+    const hostname = window.location.hostname;
+    const isLikelyFirebaseDevServer = window.location.port === '5500' || window.location.protocol === 'http:';
+    if (isLikelyFirebaseDevServer) return `https://${hostname}`;
+
+    // Otherwise, same origin.
+    return window.location.origin;
+  })();
+
+  const loadSocketIoClient = (src) => new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-socketio-client="true"]');
+    if (existing) {
+      // Already attempted/loaded.
+      if (typeof io !== 'undefined') return resolve();
+    }
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.setAttribute('data-socketio-client', 'true');
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(s);
+  });
+
+  const ensureIoLoaded = async () => {
+    if (typeof io !== 'undefined') return;
+    // First try the bridge's built-in client script.
+    try {
+      await loadSocketIoClient(`${bridgeOrigin}/socket.io/socket.io.js`);
+    } catch (err) {
+      // Fallback to CDN (same major as server: 4.x)
+      await loadSocketIoClient('https://cdn.socket.io/4.8.1/socket.io.min.js');
+    }
+  };
+
+  setMqttStatus(`MQTT: Connecting to ${bridgeOrigin}...`);
+
+  (async () => {
+    try {
+      await ensureIoLoaded();
+    } catch (err) {
+      console.error('Socket.IO client load failed:', err);
+      setMqttStatus('MQTT: Socket client not loaded');
+      return;
+    }
+
+    if (typeof io === 'undefined') {
+      setMqttStatus('MQTT: Socket client not loaded');
+      return;
+    }
+
+    const socket = io(bridgeOrigin, {
+      // Be explicit so we don't accidentally connect to the Firebase origin.
+      path: '/socket.io',
+    });
+
+    socket.on('connect', () => {
+      setMqttStatus('MQTT: Web socket connected');
+    });
+
+    socket.on('disconnect', () => {
+      setMqttStatus('MQTT: Web socket disconnected');
+    });
+
+    socket.on('connect_error', (err) => {
+      const msg = (err && err.message) ? err.message : String(err || 'Unknown error');
+      setMqttStatus(`MQTT: Web socket error - ${msg} (bridge: ${bridgeOrigin})`);
+    });
+
+    socket.on('mqtt_status', (status) => {
+      if (!status || typeof status !== 'object') return;
+      if (status.connected) {
+        setMqttStatus(`MQTT: Connected (topic: ${status.topic || '#'})`);
+        return;
+      }
+      if (status.reconnecting) {
+        setMqttStatus('MQTT: Reconnecting...');
+        return;
+      }
+      if (status.error) {
+        setMqttStatus(`MQTT: Error - ${status.error}`);
+        return;
+      }
+      setMqttStatus('MQTT: Disconnected');
+    });
+
+    socket.on('mqtt_message', (message) => {
+      if (!message || typeof message !== 'object') return;
+      appendMqttMessage(message.topic || '', message.payload || '', message.timestamp);
+    });
+  })();
 }
 
 function setupDataChannel(channel) {
@@ -307,6 +457,7 @@ function init() {
 
   initChatUi();
   initRobotUi();
+  initMqttUi();
 
   // Optional auto-create / auto-join via URL params.
   // Examples:

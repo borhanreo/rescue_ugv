@@ -74,6 +74,18 @@ firebase deploy --only firestore:rules
 ### Run proxy server
 ```sudo node proxy_server.js ```
 
+## MQTT topics (important)
+The proxy server bridges MQTT → the web UI via Socket.IO.
+
+- UGV publishes telemetry to: `v301/ugv/telemetry/{DEVICE_MAC}`
+- UGV listens for commands on: `v301/ugv/commands/{DEVICE_MAC}`
+
+So, if your web UI should display robot telemetry, set `MQTT_SUBSCRIBE_TOPIC` in `.env` to:
+`v301/ugv/telemetry/#`
+
+If the proxy is subscribed to a different topic (for example `v301/webportal`) you may see:
+"MQTT connected" and "MQTT subscribed" but **no incoming messages**.
+
 
 # Auto start of Cloud machine
 
