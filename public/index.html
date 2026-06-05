@@ -87,6 +87,21 @@
             </button>
         </div>
 
+        <div class="robot-row">
+            <button class="mdc-button mdc-button--raised" id="btnRestart" data-cmd="restart" disabled>
+                <span class="mdc-button__label">Restart</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnReload" data-cmd="reload" disabled>
+                <span class="mdc-button__label">Reload</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnForceStop" data-cmd="force_stop" disabled>
+                <span class="mdc-button__label">Force Stop</span>
+            </button>
+            <button class="mdc-button mdc-button--raised" id="btnGetInfo" data-cmd="get_info" disabled>
+                <span class="mdc-button__label">Get Info</span>
+            </button>
+        </div>
+
         <div class="servo-controls" aria-label="Servo potentiometer controls">
             <div class="servo-item">
                 <label for="servo1Pot">Servo 1 (t:16) angle: <span id="servo1Value">90</span></label>

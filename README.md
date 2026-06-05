@@ -234,7 +234,6 @@ bash
 
 ```sudo systemctl daemon-reload```
 
-
 ```sudo systemctl enable firebase-proxy.service```
 
 ```sudo systemctl start firebase-proxy.service```

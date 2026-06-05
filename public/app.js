@@ -67,6 +67,12 @@ const ROBOT_CMD_MAP = {
   extra_1: { t: 7, v: DEFAULT_CMD_V },
   extra_2: { t: 8, v: DEFAULT_CMD_V },
   extra_3: { t: 9, v: DEFAULT_CMD_V },
+
+  // System actions
+  restart: { t: 14, v: "20" },
+  reload: { t: 18, v: "20" },
+  force_stop: { t: 0, v: "20" },
+  get_info: { t: 19, v: "20" },
 };
 
 const SERVO_CMD_MAP = {
