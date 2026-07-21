@@ -40,7 +40,7 @@
         <i class="material-icons mdc-button__icon" aria-hidden="true">meeting_room</i>
         <span class="mdc-button__label">Join Telemetry Room</span>
     </button>
-    <button><div id="robotStatus">Not connected</div></button>
+    <button><span id="robotStatus">Not connected</span></button>
 </div>
 <div>
     <span id="currentRoom"></span>
@@ -55,6 +55,7 @@
             
         
         <div class="robot-grid">            
+            <div></div>
             <button class="mdc-button mdc-button--raised" id="btnForward" data-cmd="forward" disabled>
                 <span class="mdc-button__label">Forward</span>
             </button>
