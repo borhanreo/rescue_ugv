@@ -31,6 +31,9 @@ let mqttSocket = null;
 let mqttBridgeConnected = false;
 let mqttBrokerConnected = false;
 let inferredDeviceId = null;
+let inferredTelemetryRoomId = null;
+
+const QUICK_JOIN_BASE_URL = 'https://103.197.206.61/';
 
 let robotDcStatusText = 'Not connected';
 let robotMqttStatusText = 'MQTT disconnected';
@@ -60,6 +63,10 @@ const robotEls = {
   servo1Value: null,
   servo2Value: null,
   speedValue: null,
+};
+
+const quickJoinEls = {
+  button: null,
 };
 
 const DEFAULT_CMD_V = 100;
@@ -189,6 +196,38 @@ function appendMqttMessage(topic, payload, timestamp) {
   mqttEls.messages.scrollTop = mqttEls.messages.scrollHeight;
 }
 
+function extractTelemetryRoomIdFromText(text) {
+  const source = String(text || '');
+  const match = source.match(/\brnd_[A-Za-z0-9_-]+\b/);
+  return match ? match[0] : null;
+}
+
+function setQuickJoinRoom(roomId) {
+  const btn = quickJoinEls.button;
+  inferredTelemetryRoomId = roomId || null;
+  if (!btn || !inferredTelemetryRoomId) return;
+
+  btn.disabled = false;
+  btn.style.display = '';
+  btn.title = `Join ${inferredTelemetryRoomId}`;
+}
+
+function hideQuickJoinRoom() {
+  const btn = quickJoinEls.button;
+  inferredTelemetryRoomId = null;
+  if (!btn) return;
+
+  btn.disabled = true;
+  btn.style.display = 'none';
+  btn.title = '';
+}
+
+function handleQuickJoinRoomClick() {
+  if (!inferredTelemetryRoomId) return;
+  const joinUrl = `${QUICK_JOIN_BASE_URL}?room_join=${encodeURIComponent(inferredTelemetryRoomId)}`;
+  window.location.href = joinUrl;
+}
+
 function connectMqttMonitor() {
   const bridgeOrigin = (() => {
     // If the page is served from Firebase dev server (commonly :5500 over http),
@@ -309,6 +348,11 @@ function connectMqttMonitor() {
       if (!message || typeof message !== 'object') return;
       appendMqttMessage(message.topic || '', message.payload || '', message.timestamp);
 
+      const telemetryRoomId = extractTelemetryRoomIdFromText(message.payload || '');
+      if (telemetryRoomId) {
+        setQuickJoinRoom(telemetryRoomId);
+      }
+
       // Infer device id from telemetry topic: v301/ugv/telemetry/{DEVICE_ID}
       try {
         const topic = String(message.topic || '');
@@ -328,6 +372,14 @@ function connectMqttMonitor() {
       }
     });
   })();
+}
+
+function initQuickJoinUi() {
+  quickJoinEls.button = document.querySelector('#quickJoinRoomBtn');
+  if (!quickJoinEls.button) return;
+
+  hideQuickJoinRoom();
+  quickJoinEls.button.addEventListener('click', handleQuickJoinRoomClick);
 }
 
 function getMqttCommandTopic() {
@@ -584,6 +636,7 @@ function init() {
   initChatUi();
   initRobotUi();
   initMqttUi();
+  initQuickJoinUi();
 
   // Optional auto-create / auto-join via URL params.
   // Examples:

@@ -61,6 +61,24 @@ const httpsServer = https.createServer(options, (req, res) => {
     res.end(body);
     return;
   }
+  if (req.url && req.url.split('?')[0] === '/v_laser.txt') {
+    const laserFilePath = path.join(__dirname, 'public', 'v_laser.txt');
+    fs.readFile(laserFilePath, 'utf8', (err, fileContent) => {
+      if (err) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'File not found' }));
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="v_laser.txt"',
+        'Cache-Control': 'no-store',
+      });
+      res.end(fileContent);
+    });
+    return;
+  }
   if (req.url && req.url.startsWith('/socket.io/')) {
     return;
   }
