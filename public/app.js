@@ -97,6 +97,206 @@ const SERVO_CMD_MAP = {
   servo2: 17,
 };
 
+// --- Serial joystick (Web Serial API) ---------------------------------
+// A hardware joystick connected to this machine's serial/USB port sends
+// one text label per line whenever a button is pressed (e.g. "FORWARD").
+// Each label is mapped to an existing robot command key and dispatched
+// through the exact same sendRobotCommandByKey() used by the on-screen
+// buttons, so joystick input behaves identically to clicking a button.
+// Add more aliases here as new joystick buttons are wired up.
+const JOYSTICK_BAUD_RATE = 9600;
+
+const JOYSTICK_CMD_ALIASES = {
+  FORWARD: 'forward',
+  FWD: 'forward',
+  BACK: 'back',
+  BACKWARD: 'back',
+  LEFT: 'left',
+  RIGHT: 'right',
+  HOLD: 'pos_hold',
+  POS_HOLD: 'pos_hold',
+  POSHOLD: 'pos_hold',
+  ALT_HOLD: 'alt_hold',
+  ALTHOLD: 'alt_hold',
+  EXTRA_1: 'extra_1',
+  EXTRA_2: 'extra_2',
+  EXTRA_3: 'extra_3',
+  RESTART: 'restart',
+  RELOAD: 'reload',
+  FORCE_STOP: 'force_stop',
+  STOP: 'force_stop',
+  GET_INFO: 'get_info',
+};
+
+const joystickEls = {
+  connectBtn: null,
+  status: null,
+};
+
+let joystickPort = null;
+let joystickReader = null;
+let joystickReadableStreamClosed = null;
+let joystickReadLoopPromise = null;
+let joystickKeepReading = false;
+
+function isWebSerialSupported() {
+  return typeof navigator !== 'undefined' && 'serial' in navigator;
+}
+
+function setJoystickStatus(text) {
+  if (joystickEls.status) joystickEls.status.textContent = text;
+}
+
+function getJoystickBaudRate() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const raw = Number(params.get('joystick_baud'));
+    if (Number.isFinite(raw) && raw > 0) return raw;
+  } catch {
+    // ignore
+  }
+  return JOYSTICK_BAUD_RATE;
+}
+
+function resolveJoystickCommandKey(rawLabel) {
+  const label = String(rawLabel || '').trim();
+  if (!label) return null;
+  const upper = label.toUpperCase();
+  if (JOYSTICK_CMD_ALIASES[upper]) return JOYSTICK_CMD_ALIASES[upper];
+  // Also allow the joystick to send the raw command key directly (e.g. "forward").
+  const lower = label.toLowerCase();
+  if (ROBOT_CMD_MAP[lower]) return lower;
+  return null;
+}
+
+function handleJoystickLine(line) {
+  const text = line.trim();
+  if (!text) return;
+  const cmdKey = resolveJoystickCommandKey(text);
+  if (!cmdKey) {
+    console.warn('Joystick: unmapped button label:', text);
+    return;
+  }
+  console.log('Joystick button ->', cmdKey);
+  sendRobotCommandByKey(cmdKey);
+}
+
+async function joystickReadLoop(port) {
+  const textDecoder = new TextDecoderStream();
+  joystickReadableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+  const reader = textDecoder.readable.getReader();
+  joystickReader = reader;
+
+  let buffer = '';
+  try {
+    while (joystickKeepReading) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        buffer += value;
+        let idx;
+        while ((idx = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 1);
+          handleJoystickLine(line);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Joystick read error:', err);
+    setJoystickStatus(`Joystick: read error - ${err.message || err}`);
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // ignore
+    }
+    try {
+      await joystickReadableStreamClosed.catch(() => {});
+    } catch {
+      // ignore
+    }
+  }
+}
+
+async function connectJoystick() {
+  if (!isWebSerialSupported()) {
+    setJoystickStatus('Joystick: Web Serial not supported in this browser');
+    return;
+  }
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: getJoystickBaudRate() });
+    joystickPort = port;
+    joystickKeepReading = true;
+    setJoystickStatus('Joystick: Connected');
+    if (joystickEls.connectBtn) {
+      joystickEls.connectBtn.querySelector('.mdc-button__label').textContent = 'Disconnect Joystick';
+    }
+    joystickReadLoopPromise = joystickReadLoop(port);
+  } catch (err) {
+    console.error('Joystick connect failed:', err);
+    setJoystickStatus(`Joystick: Connect failed - ${err.message || err}`);
+  }
+}
+
+async function disconnectJoystick() {
+  joystickKeepReading = false;
+  try {
+    if (joystickReader) {
+      await joystickReader.cancel().catch(() => {});
+    }
+    if (joystickReadLoopPromise) {
+      await joystickReadLoopPromise.catch(() => {});
+    }
+    if (joystickPort) {
+      await joystickPort.close().catch(() => {});
+    }
+  } finally {
+    joystickPort = null;
+    joystickReader = null;
+    joystickReadableStreamClosed = null;
+    joystickReadLoopPromise = null;
+    setJoystickStatus('Joystick: Not connected');
+    if (joystickEls.connectBtn) {
+      joystickEls.connectBtn.querySelector('.mdc-button__label').textContent = 'Connect Joystick';
+    }
+  }
+}
+
+function toggleJoystickConnection() {
+  if (joystickPort) {
+    disconnectJoystick();
+  } else {
+    connectJoystick();
+  }
+}
+
+function initJoystickUi() {
+  joystickEls.connectBtn = document.querySelector('#joystickConnectBtn');
+  joystickEls.status = document.querySelector('#joystickStatus');
+
+  if (!joystickEls.connectBtn || !joystickEls.status) {
+    console.warn('Joystick UI elements not found; serial joystick disabled.');
+    return;
+  }
+
+  if (!isWebSerialSupported()) {
+    joystickEls.connectBtn.disabled = true;
+    setJoystickStatus('Joystick: Web Serial not supported (use Chrome/Edge over HTTPS)');
+    return;
+  }
+
+  setJoystickStatus('Joystick: Not connected');
+  joystickEls.connectBtn.addEventListener('click', toggleJoystickConnection);
+
+  navigator.serial.addEventListener('disconnect', (event) => {
+    if (joystickPort && event.target === joystickPort) {
+      disconnectJoystick();
+    }
+  });
+}
+
 function getRoomActionFromUrl() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -637,6 +837,7 @@ function init() {
   initRobotUi();
   initMqttUi();
   initQuickJoinUi();
+  initJoystickUi();
 
   // Optional auto-create / auto-join via URL params.
   // Examples:
