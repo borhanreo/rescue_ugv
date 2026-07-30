@@ -8,49 +8,24 @@ document.querySelectorAll('.mdc-button').forEach((btn) => {
 
 // DEfault configuration - Change these if you have a different STUN or TURN server.
 const configuration = {
-  // iceServers: [
-  //   {
-  //     urls: [
-  //       'stun:stun1.l.google.com:19302',
-  //       'stun:stun2.l.google.com:19302',
-  //     ],
-  //     //urls: "stun:103.197.206.61:3478"
-  //   },
-  //   {
-  //     urls: [
-  //       "turn:103.197.206.61:3478?transport=udp",
-  //       "turn:103.197.206.61:3478?transport=tcp",
-  //     ],
-  //     username: "turnuser",
-  //     credential: "Aa12341!",
-  //   },
-  // ],
-  // iceCandidatePoolSize: 10,
   iceServers: [
-      {
-        urls: "stun:stun.relay.metered.ca:80",
-      },
-      {
-        urls: "turn:global.relay.metered.ca:80",
-        username: "9390c0bb545bc7efee178dc8",
-        credential: "YHSD9i/IqMI1CL/g",
-      },
-      {
-        urls: "turn:global.relay.metered.ca:80?transport=tcp",
-        username: "9390c0bb545bc7efee178dc8",
-        credential: "YHSD9i/IqMI1CL/g",
-      },
-      {
-        urls: "turn:global.relay.metered.ca:443",
-        username: "9390c0bb545bc7efee178dc8",
-        credential: "YHSD9i/IqMI1CL/g",
-      },
-      {
-        urls: "turns:global.relay.metered.ca:443?transport=tcp",
-        username: "9390c0bb545bc7efee178dc8",
-        credential: "YHSD9i/IqMI1CL/g",
-      },
+    {
+      urls: [
+        'stun:stun1.l.google.com:19302',
+        'stun:stun2.l.google.com:19302',
+      ],
+      //urls: "stun:103.197.206.61:3478"
+    },
+    {
+      urls: [
+        "turn:103.197.206.61:3478?transport=udp",
+        "turn:103.197.206.61:3478?transport=tcp",
+      ],
+      username: "turnuser",
+      credential: "Aa12341!",
+    },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 let peerConnection = null;
