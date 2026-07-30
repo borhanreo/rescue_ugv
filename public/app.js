@@ -10,10 +10,11 @@ document.querySelectorAll('.mdc-button').forEach((btn) => {
 const configuration = {
   iceServers: [
     {
-      urls: [
-        'stun:stun1.l.google.com:19302',
-        'stun:stun2.l.google.com:19302',
-      ],
+      // urls: [
+      //   'stun:stun1.l.google.com:19302',
+      //   'stun:stun2.l.google.com:19302',
+      // ],
+      urls: "stun:103.197.206.61:3478"
     },
     {
       urls: [
