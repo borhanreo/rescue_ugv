@@ -26,7 +26,6 @@ const configuration = {
     },
   ],
   iceCandidatePoolSize: 10,
-  iceTransportPolicy: "relay",
 };
 
 let peerConnection = null;
