@@ -21,7 +21,7 @@ const configuration = {
         "turn:103.197.206.61:3478?transport=tcp",
       ],
       username: "turnuser",
-      credential: "Aa12341!!",
+      credential: "Aa12341!",
     },
   ],
   iceCandidatePoolSize: 10,
