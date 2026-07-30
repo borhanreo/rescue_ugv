@@ -15,6 +15,14 @@ const configuration = {
         'stun:stun2.l.google.com:19302',
       ],
     },
+    {
+      urls: [
+        "turn:103.197.206.61:3478?transport=udp",
+        "turn:103.197.206.61:3478?transport=tcp",
+      ],
+      username: "turnuser",
+      credential: "Aa12341!!",
+    },
   ],
   iceCandidatePoolSize: 10,
 };
