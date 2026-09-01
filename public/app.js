@@ -41,6 +41,7 @@ let mqttBridgeConnected = false;
 let mqttBrokerConnected = false;
 let inferredDeviceId = null;
 let inferredTelemetryRoomId = null;
+let pendingMqttCommand = null;
 
 const QUICK_JOIN_BASE_URL = 'https://103.197.206.61/';
 
@@ -526,6 +527,7 @@ function connectMqttMonitor() {
         mqttBrokerConnected = true;
         setRobotMqttStatus(inferredDeviceId ? `MQTT connected (device: ${inferredDeviceId})` : 'MQTT connected');
         setMqttButtonsEnabled(true);
+        flushPendingMqttCommand();
         return;
       }
       if (status.reconnecting) {
@@ -574,6 +576,7 @@ function connectMqttMonitor() {
             if (mqttBrokerConnected) {
               setRobotMqttStatus(`MQTT connected (device: ${inferredDeviceId})`);
             }
+            flushPendingMqttCommand();
           }
         }
       } catch {
@@ -623,10 +626,17 @@ function mqttPublishJson(obj) {
 
   const topic = getMqttCommandTopic();
   if (!topic) {
-    setRobotMqttStatus('No device yet (wait telemetry)');
+    // No device id inferred yet: remember the command and send it
+    // automatically as soon as telemetry identifies the device.
+    pendingMqttCommand = obj;
+    setRobotMqttStatus('No device yet (wait telemetry) - command will auto-send');
     return;
   }
 
+  publishMqttPayload(topic, obj);
+}
+
+function publishMqttPayload(topic, obj) {
   const payload = JSON.stringify(obj);
   mqttSocket.emit('mqtt_publish', { topic, payload }, (ack) => {
     if (ack && ack.ok) {
@@ -636,6 +646,15 @@ function mqttPublishJson(obj) {
     const err = (ack && ack.error) ? ack.error : 'Publish failed';
     setRobotMqttStatus(`MQTT publish failed: ${err}`);
   });
+}
+
+function flushPendingMqttCommand() {
+  if (!pendingMqttCommand) return;
+  const topic = getMqttCommandTopic();
+  if (!topic) return;
+  const obj = pendingMqttCommand;
+  pendingMqttCommand = null;
+  publishMqttPayload(topic, obj);
 }
 
 function setupDataChannel(channel) {
@@ -1199,7 +1218,7 @@ function registerPeerConnectionListeners() {
     console.log(`Signaling state change: ${peerConnection.signalingState}`);
   });
 
-  peerConnection.addEventListener('iceconnectionstatechange ', () => {
+  peerConnection.addEventListener('iceconnectionstatechange', () => {
     console.log(
         `ICE connection state change: ${peerConnection.iceConnectionState}`);
   });
